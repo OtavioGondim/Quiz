@@ -57,7 +57,11 @@ object GerenciadorAuth {
         return try{
             val resultadoAuth = auth.signInWithEmailAndPassword(email, senha).await()
             val usuarioFirebase = resultadoAuth.user!!
-            Log.d(TAG, "Login bem sucess")
+            Log.d(TAG, "Login bem sucedido: ${usuarioFirebase.uid}")
+            Result.success(usuarioFirebase)
+        }catch (e: Exception){
+            Log.e(TAG,"Falha ao realizar o login", e)
+            Result.failure(e)
         }
     }
 }
