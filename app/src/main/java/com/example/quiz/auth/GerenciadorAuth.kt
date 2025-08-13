@@ -1,4 +1,6 @@
 package com.example.quiz.auth
+import android.R
+import android.annotation.SuppressLint
 import android.content.Context
 import android.util.Log
 import com.google.firebase.auth.FirebaseAuth
@@ -17,6 +19,7 @@ object GerenciadorAuth {
 
     private val auth: FirebaseAuth = Firebase.auth
 
+    @SuppressLint("StaticFieldLeak")
     private val db: FirebaseFirestore = Firebase.firestore
 
     fun getUsuarioAtual(): FirebaseUser?{
@@ -63,5 +66,32 @@ object GerenciadorAuth {
             Log.e(TAG,"Falha ao realizar o login", e)
             Result.failure(e)
         }
+    }
+    /**
+     * Salva ou atualiza o perfil de um usuário no Cloud Firestore.
+     * @param "idUsuario O UID do usuário do Firebase Authentication.
+     * @param "email" O e-mail do usuário.
+     * @param "nomeUsuario" O nome de usuário.
+     */
+
+    private suspend fun salvarPerfilUsuario(idUsuario: String, email: String, nomeUsuario: String){
+        //Cria um mapa com os dados do usuário
+        val perfilUsuario = hashMapOf(
+            "uid" to idUsuario,
+            "nomeUsuario" to nomeUsuario,
+            "email" to email,
+            "criadoEm" to System.currentTimeMillis(),
+        )
+        try {
+            db.collection(COLECAO_USUARIOS).document(idUsuario).set(perfilUsuario).await()
+            Log.d(TAG,"Perfil salvo no firestone com sucesso")
+        } catch (e: Exception){
+            Log.e(TAG,"Erro ao salvar o login do usuario no firestone", e)
+        }
+    }
+    //Função para fazer o logout do usuario
+    fun fazerLogout(){
+        auth.signOut()
+        Log.d(TAG,"logout feito com sucesso")
     }
 }
