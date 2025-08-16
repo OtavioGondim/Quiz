@@ -15,9 +15,11 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.example.quiz.auth.GerenciadorAuth
 import com.example.quiz.ui.cadastro.TelaCadastro
+import com.example.quiz.ui.historico.TelaHistorico
 import com.example.quiz.ui.login.TelaLogin
 import com.example.quiz.ui.quiz.TelaExecucaoQuiz
 import com.example.quiz.ui.quiz.TelaListaQuizzes
+import com.example.quiz.ui.ranking.TelaRanking
 import com.example.quiz.ui.theme.QuizTheme
 
 class MainActivity : ComponentActivity() {
@@ -63,32 +65,50 @@ fun AppNavigation() {
         composable("quiz_list") {
             TelaListaQuizzes(
                 onQuizSelected = { quiz ->
-                    // Navega para a tela de execução, passando o ID do quiz selecionado
                     navController.navigate("quiz_execution/${quiz.id}")
                 },
                 onLogout = {
                     GerenciadorAuth.fazerLogout()
                     navController.navigate("login") { popUpTo(0) }
+                },
+                onNavigateToHistorico = {
+                    navController.navigate("historico")
+                },
+                onNavigateToRanking = {
+                    navController.navigate("ranking")
                 }
             )
         }
-
 
         composable(
             route = "quiz_execution/{quizId}",
             arguments = listOf(navArgument("quizId") { type = NavType.StringType })
         ) { backStackEntry ->
-            // Extrai o ID do quiz dos argumentos da rota
             val quizId = backStackEntry.arguments?.getString("quizId")
             if (quizId != null) {
                 TelaExecucaoQuiz(
                     quizId = quizId,
                     onQuizFinished = {
-                        // Volta para a lista de quizzes quando o quiz terminar
                         navController.popBackStack()
                     }
                 )
             }
+        }
+
+        composable("historico") {
+            TelaHistorico(
+                onNavigateBack = {
+                    navController.popBackStack()
+                }
+            )
+        }
+
+        composable("ranking") {
+            TelaRanking(
+                onNavigateBack = {
+                    navController.popBackStack()
+                }
+            )
         }
     }
 }

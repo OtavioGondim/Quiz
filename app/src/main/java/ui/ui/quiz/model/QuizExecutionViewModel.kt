@@ -1,16 +1,22 @@
 package com.example.quiz.ui.quiz
 
+import android.app.Application
 import android.util.Log
 import androidx.compose.runtime.mutableStateOf
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import com.example.quiz.auth.GerenciadorAuth
+import com.example.quiz.ui.historico.Historico
 import com.example.quiz.ui.quiz.model.Questao
+import com.google.firebase.Timestamp
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 
-class QuizExecutionViewModel : ViewModel() {
+class QuizExecutionViewModel(application: Application) : AndroidViewModel(application) {
 
     // Estados da UI
     val questoes = mutableStateOf<List<Questao>>(emptyList())
@@ -19,10 +25,14 @@ class QuizExecutionViewModel : ViewModel() {
     val quizFinalizado = mutableStateOf(false)
     val isLoading = mutableStateOf(true)
     val errorMessage = mutableStateOf<String?>(null)
+    val quizTitulo = mutableStateOf("")
 
-    // Função para buscar as perguntas de um quiz específico
-    fun carregarQuestoes(quizId: String) {
-        if (questoes.value.isNotEmpty()) return // Já carregou
+    private var quizId: String = ""
+
+    fun carregarQuestoes(id: String) {
+        if (questoes.value.isNotEmpty() && quizId == id) return
+
+        quizId = id
 
         viewModelScope.launch {
             isLoading.value = true
@@ -31,7 +41,9 @@ class QuizExecutionViewModel : ViewModel() {
             pontuacao.value = 0
 
             try {
-                // Acessa a sub-coleção "questoes" dentro do quiz selecionado
+                val quizDoc = Firebase.firestore.collection("quizzes").document(quizId).get().await()
+                quizTitulo.value = quizDoc.getString("titulo") ?: "Quiz Desconhecido"
+
                 val snapshot = Firebase.firestore
                     .collection("quizzes")
                     .document(quizId)
@@ -39,7 +51,6 @@ class QuizExecutionViewModel : ViewModel() {
                     .get()
                     .await()
 
-                // Converte os documentos para a nossa lista de objetos Questao
                 questoes.value = snapshot.documents.mapNotNull { document ->
                     document.toObject(Questao::class.java)?.copy(id = document.id)
                 }
@@ -53,22 +64,51 @@ class QuizExecutionViewModel : ViewModel() {
         }
     }
 
-    // Função chamada quando o utilizador seleciona uma resposta
     fun selecionarResposta(respostaSelecionada: String) {
         if (quizFinalizado.value) return
 
         val questaoAtual = questoes.value[indiceQuestaoAtual.value]
         if (questaoAtual.respostaCorreta == respostaSelecionada) {
-            // Se a resposta estiver correta, aumenta a pontuação
             pontuacao.value++
         }
 
-        // Passa para a próxima pergunta ou finaliza o quiz
         if (indiceQuestaoAtual.value < questoes.value.size - 1) {
             indiceQuestaoAtual.value++
         } else {
             quizFinalizado.value = true
+            salvarResultado()
+        }
+    }
+
+    private fun salvarResultado() {
+        viewModelScope.launch {
+            val historico = Historico(
+                quizId = quizId,
+                quizTitulo = quizTitulo.value,
+                pontuacao = pontuacao.value,
+                totalQuestoes = questoes.value.size,
+                dataRealizacao = Timestamp.now()
+            )
+
+            val resultado = GerenciadorAuth.salvarResultadoQuiz(historico)
+            resultado.onFailure { exception ->
+                Log.e("QuizExecutionViewModel", "Falha ao salvar histórico", exception)
+            }
+        }
+    }
+
+    // Factory para permitir que a UI crie uma instância deste ViewModel
+    companion object {
+        fun provideFactory(
+            application: Application
+        ): ViewModelProvider.Factory = object : ViewModelProvider.Factory {
+            @Suppress("UNCHECKED_CAST")
+            override fun <T : ViewModel> create(modelClass: Class<T>): T {
+                if (modelClass.isAssignableFrom(QuizExecutionViewModel::class.java)) {
+                    return QuizExecutionViewModel(application) as T
+                }
+                throw IllegalArgumentException("Unknown ViewModel class")
+            }
         }
     }
 }
-
