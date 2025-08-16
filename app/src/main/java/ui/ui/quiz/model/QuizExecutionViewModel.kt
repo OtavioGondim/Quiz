@@ -8,17 +8,18 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.example.quiz.auth.GerenciadorAuth
+import com.example.quiz.data.QuizRepository
 import com.example.quiz.ui.historico.Historico
 import com.example.quiz.ui.quiz.model.Questao
 import com.google.firebase.Timestamp
-import com.google.firebase.firestore.ktx.firestore
-import com.google.firebase.ktx.Firebase
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.tasks.await
 
 class QuizExecutionViewModel(application: Application) : AndroidViewModel(application) {
 
-    // Estados da UI
+    // O ViewModel agora usa o Repositório como única fonte de dados.
+    private val repository = QuizRepository(application)
+
+    // Os estados da UI continuam os mesmos
     val questoes = mutableStateOf<List<Questao>>(emptyList())
     val indiceQuestaoAtual = mutableStateOf(0)
     val pontuacao = mutableStateOf(0)
@@ -41,19 +42,12 @@ class QuizExecutionViewModel(application: Application) : AndroidViewModel(applic
             pontuacao.value = 0
 
             try {
-                val quizDoc = Firebase.firestore.collection("quizzes").document(quizId).get().await()
-                quizTitulo.value = quizDoc.getString("titulo") ?: "Quiz Desconhecido"
+                // Busca as questões através do repositório.
+                questoes.value = repository.getQuestoesForQuiz(quizId)
+                // A busca do título pode ser melhorada no futuro, adicionando-a ao repositório.
+                val quizInfo = repository.getQuizzes().find { it.id == quizId }
+                quizTitulo.value = quizInfo?.titulo ?: "Quiz Desconhecido"
 
-                val snapshot = Firebase.firestore
-                    .collection("quizzes")
-                    .document(quizId)
-                    .collection("questoes")
-                    .get()
-                    .await()
-
-                questoes.value = snapshot.documents.mapNotNull { document ->
-                    document.toObject(Questao::class.java)?.copy(id = document.id)
-                }
                 errorMessage.value = null
             } catch (e: Exception) {
                 Log.e("QuizExecutionViewModel", "Erro ao buscar questões", e)
@@ -90,9 +84,10 @@ class QuizExecutionViewModel(application: Application) : AndroidViewModel(applic
                 dataRealizacao = Timestamp.now()
             )
 
-            val resultado = GerenciadorAuth.salvarResultadoQuiz(historico)
-            resultado.onFailure { exception ->
-                Log.e("QuizExecutionViewModel", "Falha ao salvar histórico", exception)
+            // Salva o histórico tanto na nuvem (Firebase) quanto localmente (Room).
+            repository.saveHistorico(historico)
+            GerenciadorAuth.salvarResultadoQuiz(historico).onFailure { exception ->
+                Log.e("QuizExecutionViewModel", "Falha ao salvar histórico no Firebase", exception)
             }
         }
     }

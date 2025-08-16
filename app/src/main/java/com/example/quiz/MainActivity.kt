@@ -74,6 +74,7 @@ fun AppNavigation() {
                 onNavigateToHistorico = {
                     navController.navigate("historico")
                 },
+                // Passa a ação de navegação para a TelaListaQuizzes
                 onNavigateToRanking = {
                     navController.navigate("ranking")
                 }
@@ -89,6 +90,7 @@ fun AppNavigation() {
                 TelaExecucaoQuiz(
                     quizId = quizId,
                     onQuizFinished = {
+                        // Volta para a lista de quizzes quando o quiz terminar
                         navController.popBackStack()
                     }
                 )
@@ -103,9 +105,11 @@ fun AppNavigation() {
             )
         }
 
+        // Nova rota para a tela de ranking
         composable("ranking") {
             TelaRanking(
                 onNavigateBack = {
+                    // Ação para o botão de voltar
                     navController.popBackStack()
                 }
             )

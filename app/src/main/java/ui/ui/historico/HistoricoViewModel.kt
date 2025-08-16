@@ -1,17 +1,16 @@
 package com.example.quiz.ui.historico
 
+import android.app.Application
 import android.util.Log
 import androidx.compose.runtime.mutableStateOf
-import androidx.lifecycle.ViewModel
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.quiz.auth.GerenciadorAuth
-import com.google.firebase.Firebase
-import com.google.firebase.firestore.Query
-import com.google.firebase.firestore.firestore
+import com.example.quiz.data.QuizRepository
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.tasks.await
 
-class HistoricoViewModel : ViewModel() {
+class HistoricoViewModel(application: Application) : AndroidViewModel(application) {
+
+    private val repository = QuizRepository(application.applicationContext)
 
     val historicoList = mutableStateOf<List<Historico>>(emptyList())
     val isLoading = mutableStateOf(true)
@@ -24,28 +23,12 @@ class HistoricoViewModel : ViewModel() {
     private fun carregarHistorico() {
         viewModelScope.launch {
             isLoading.value = true
-            val idUsuario = GerenciadorAuth.getUsuarioAtual()?.uid
-
-            if (idUsuario == null) {
-                errorMessage.value = "Utilizador não encontrado."
-                isLoading.value = false
-                return@launch
-            }
-
             try {
-                val snapshot = Firebase.firestore
-                    .collection("usuarios")
-                    .document(idUsuario)
-                    .collection("historico")
-                    // Ordena os resultados pelos mais recentes primeiro
-                    .orderBy("dataRealizacao", Query.Direction.DESCENDING)
-                    .get()
-                    .await()
-
-                historicoList.value = snapshot.toObjects(Historico::class.java)
+                // Busca o histórico através do repositório, que lê do banco de dados local.
+                historicoList.value = repository.getHistorico()
                 errorMessage.value = null
             } catch (e: Exception) {
-                Log.e("HistoricoViewModel", "Erro ao buscar histórico", e)
+                Log.e("HistoricoViewModel", "Erro ao buscar histórico local", e)
                 errorMessage.value = "Falha ao carregar o histórico."
             } finally {
                 isLoading.value = false
@@ -53,4 +36,3 @@ class HistoricoViewModel : ViewModel() {
         }
     }
 }
-

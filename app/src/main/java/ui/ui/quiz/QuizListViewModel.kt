@@ -8,12 +8,13 @@ import com.example.quiz.ui.quiz.model.Quiz
 import androidx.compose.runtime.mutableStateOf
 import kotlinx.coroutines.launch
 
+// Alterado para AndroidViewModel para ter acesso ao Contexto da Aplicação
 class QuizListViewModel(application: Application) : AndroidViewModel(application) {
 
-    // O repositório é instanciado aqui. Certifique-se de que a classe QuizRepository existe.
+    // O ViewModel agora usa o Repositório como única fonte de dados.
     private val repository = QuizRepository(application.applicationContext)
 
-    // Definição dos estados que a UI vai observar.
+    // Os estados da UI continuam os mesmos
     val quizzes = mutableStateOf<List<Quiz>>(emptyList())
     val isLoading = mutableStateOf(true)
     val errorMessage = mutableStateOf<String?>(null)
@@ -26,7 +27,7 @@ class QuizListViewModel(application: Application) : AndroidViewModel(application
         viewModelScope.launch {
             isLoading.value = true
             try {
-                // A busca dos quizzes é delegada ao repositório.
+                // Agora busca os quizzes através do repositório
                 quizzes.value = repository.getQuizzes()
                 errorMessage.value = null
             } catch (e: Exception) {

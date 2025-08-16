@@ -1,5 +1,6 @@
 package com.example.quiz.ui.historico
 
+import android.app.Application
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -10,19 +11,35 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.quiz.ui.theme.QuizTheme
 import java.text.SimpleDateFormat
 import java.util.*
 
+// Factory para permitir a criação do AndroidViewModel na UI
+class HistoricoViewModelFactory(private val application: Application) : ViewModelProvider.Factory {
+    override fun <T : ViewModel> create(modelClass: Class<T>): T {
+        if (modelClass.isAssignableFrom(HistoricoViewModel::class.java)) {
+            @Suppress("UNCHECKED_CAST")
+            return HistoricoViewModel(application) as T
+        }
+        throw IllegalArgumentException("Unknown ViewModel class")
+    }
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TelaHistorico(
     onNavigateBack: () -> Unit,
-    historicoViewModel: HistoricoViewModel = viewModel()
+    historicoViewModel: HistoricoViewModel = viewModel(
+        factory = HistoricoViewModelFactory(LocalContext.current.applicationContext as Application)
+    )
 ) {
     val historicoList by historicoViewModel.historicoList
     val isLoading by historicoViewModel.isLoading
@@ -71,7 +88,6 @@ fun TelaHistorico(
     }
 }
 
-// --- A FUNÇÃO QUE ESTAVA FALTANDO ---
 @Composable
 fun HistoricoCard(historico: Historico) {
     Card(

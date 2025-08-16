@@ -19,7 +19,6 @@ import com.example.quiz.ui.quiz.model.Questao
 fun TelaExecucaoQuiz(
     quizId: String?,
     onQuizFinished: () -> Unit,
-    // CORREÇÃO: O ViewModel correto é o QuizExecutionViewModel
     viewModel: QuizExecutionViewModel = viewModel(
         factory = QuizExecutionViewModel.provideFactory(
             LocalContext.current.applicationContext as Application
@@ -73,7 +72,6 @@ fun TelaExecucaoQuiz(
                     Text(text = errorMessage!!, color = MaterialTheme.colorScheme.error)
                 }
                 quizFinalizado -> {
-                    // Tela de resultado final
                     ResultadoQuiz(
                         pontuacao = pontuacao,
                         totalQuestoes = questoes.size,
@@ -81,7 +79,6 @@ fun TelaExecucaoQuiz(
                     )
                 }
                 questoes.isNotEmpty() -> {
-                    // Mostra a questão atual
                     val questaoAtual = questoes[indiceQuestaoAtual]
                     ConteudoQuestao(
                         questao = questaoAtual,
@@ -122,7 +119,6 @@ fun ConteudoQuestao(
         )
         Spacer(modifier = Modifier.height(24.dp))
 
-        // Botões de resposta
         questao.opcoes.forEach { opcao ->
             Button(
                 onClick = { onRespostaSelecionada(opcao) },
